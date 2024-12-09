@@ -229,29 +229,43 @@ static void sscma_client_process(void *arg)
                     continue;
                 }
             }
+
             sscma_client_read(client, client->rx_buffer.data + client->rx_buffer.pos, rlen);
             client->rx_buffer.pos += rlen;
+            char *data = client->rx_buffer.data + client->rx_buffer.pos;
+
+            // for (int i = 0; i < client->rx_buffer.pos; i++)
+            // {
+            //     if (client->rx_buffer.data[i] == '\0')
+            //     {
+            //         memmove(client->rx_buffer.data + i, client->rx_buffer.data + i + 1, client->rx_buffer.pos - i - 1);
+            //         client->rx_buffer.pos--;
+            //     }
+            // }
+
+            int new_pos = 0;
             for (int i = 0; i < client->rx_buffer.pos; i++)
             {
                 if (client->rx_buffer.data[i] != '\0')
                 {
-                    if (i != 0)
-                    {
-                        memmove(client->rx_buffer.data, client->rx_buffer.data + i, client->rx_buffer.pos - i);
-                        client->rx_buffer.pos -= i;
-                    }
-                    break;
+                    client->rx_buffer.data[new_pos++] = client->rx_buffer.data[i];
                 }
             }
+            client->rx_buffer.pos = new_pos;
+
+
             client->rx_buffer.data[client->rx_buffer.pos] = 0;
             while ((suffix = strnstr(client->rx_buffer.data, RESPONSE_SUFFIX, client->rx_buffer.pos)) != NULL)
             {
+              
                 if ((prefix = strnstr(client->rx_buffer.data, RESPONSE_PREFIX, suffix - client->rx_buffer.data)) != NULL)
                 {
+                    //printf("2 strnstr ok\r\n");
                     int len = suffix - prefix + RESPONSE_SUFFIX_LEN;
                     reply.data = (char *)__malloc(len + 1);
                     if (reply.data != NULL)
                     {
+                        //printf("reply.data != NULL\r\n");
                         reply.len = len;
                         memcpy(reply.data, prefix, len);
 
@@ -263,6 +277,7 @@ static void sscma_client_process(void *arg)
                         reply.payload = cJSON_Parse(reply.data);
                         if (reply.payload != NULL)
                         {
+                            // printf("reply.payload != NULL\r\n");
                             cJSON *type = cJSON_GetObjectItem(reply.payload, "type");
                             cJSON *name = cJSON_GetObjectItem(reply.payload, "name");
 
@@ -275,6 +290,7 @@ static void sscma_client_process(void *arg)
 
                             if (client->on_connect)
                             {
+                               
                                 if (name != NULL && strnstr(name->valuestring, EVENT_INIT, strlen(name->valuestring)) != NULL)
                                 {
                                     xQueueReset(client->reply_queue); // reset reply queue
@@ -346,6 +362,7 @@ static void sscma_client_process(void *arg)
                                         do
                                         {
                                             listGET_OWNER_OF_NEXT_ENTRY(next_req, client->request_list);
+                                            
                                             if (strnstr(data->valuestring, next_req->cmd, strlen(data->valuestring)) != NULL)
                                             {
                                                 if (next_req->reply)
@@ -389,6 +406,7 @@ static void sscma_client_process(void *arg)
                                     do
                                     {
                                         listGET_OWNER_OF_NEXT_ENTRY(next_req, client->request_list);
+            
                                         if (strnstr(next_req->cmd, CMD_AT_BREAK, strlen(next_req->cmd)) != NULL)
                                         {
                                             found = true;
@@ -413,6 +431,9 @@ static void sscma_client_process(void *arg)
                             ESP_LOGW(TAG, "Invalid reply: %s cc", reply.data);
                             sscma_client_reply_clear(&reply);
                         }
+                    }else{
+                        printf("reply.data == NULL\r\n");
+                        client->rx_buffer.pos -= len;
                     }
                 }
                 else
@@ -1151,21 +1172,25 @@ esp_err_t sscma_client_get_sensor(sscma_client_handle_t client, sscma_client_sen
     return ret;
 }
 
-esp_err_t get_wifi_config(sscma_client_handle_t client, sscma_client_wifi_t *WIFI)//asdasdwifi
+esp_err_t get_wifi_config(sscma_client_handle_t client, sscma_client_wifi_t *WIFI) // asdasdwifi
 {
     esp_err_t ret = ESP_OK;
     sscma_client_reply_t reply;
 
     ESP_RETURN_ON_ERROR(sscma_client_request(client, CMD_PREFIX CMD_AT_WIFI CMD_QUERY CMD_SUFFIX, &reply, true, CMD_WAIT_DELAY), TAG, "set wifi");
 
-    if (reply.payload != NULL) {
+    if (reply.payload != NULL)
+    {
         int code = get_int_from_object(reply.payload, "code");
         ret = SSCMA_CLIENT_CMD_ERROR_CODE(code);
-        if (ret == ESP_OK) {
+        if (ret == ESP_OK)
+        {
             cJSON *data = cJSON_GetObjectItem(reply.payload, "data");
-            if (data != NULL) {
+            if (data != NULL)
+            {
                 cJSON *config = cJSON_GetObjectItem(data, "config");
-                if (config != NULL) {
+                if (config != NULL)
+                {
                     fetch_string_from_object(config, "name", &(WIFI->ssid));
                     fetch_string_from_object(config, "password", &(WIFI->password));
                 }
@@ -1177,31 +1202,34 @@ esp_err_t get_wifi_config(sscma_client_handle_t client, sscma_client_wifi_t *WIF
     return ret;
 }
 
-esp_err_t get_mqtt_config(sscma_client_handle_t client, sscma_client_mqtt_t *MQTT)//asdasdwifi
+esp_err_t get_mqtt_config(sscma_client_handle_t client, sscma_client_mqtt_t *MQTT) // asdasdwifi
 {
     esp_err_t ret = ESP_OK;
     sscma_client_reply_t reply;
 
     ESP_RETURN_ON_ERROR(sscma_client_request(client, CMD_PREFIX CMD_AT_MQTTSERVER CMD_QUERY CMD_SUFFIX, &reply, true, CMD_WAIT_DELAY), TAG, "set mqtt");
 
-    if (reply.payload != NULL) {
+    if (reply.payload != NULL)
+    {
         int code = get_int_from_object(reply.payload, "code");
         ret = SSCMA_CLIENT_CMD_ERROR_CODE(code);
-        if (ret == ESP_OK) {
+        if (ret == ESP_OK)
+        {
             cJSON *data = cJSON_GetObjectItem(reply.payload, "data");
-            if (data != NULL) {
+            if (data != NULL)
+            {
                 cJSON *config = cJSON_GetObjectItem(data, "config");
-                if (config != NULL) {
+                if (config != NULL)
+                {
                     fetch_string_from_object(config, "client_id", &(MQTT->client_id));
                     fetch_string_from_object(config, "address", &(MQTT->address));
-                    //fetch_string_from_object(config, "port", &(MQTT->port));
+                    // fetch_string_from_object(config, "port", &(MQTT->port));
                     fetch_string_from_object(config, "username", &(MQTT->username));
                     fetch_string_from_object(config, "password", &(MQTT->password));
-                    //fetch_string_from_object(config, "use_ssl", &(MQTT->use_ssl));
+                    // fetch_string_from_object(config, "use_ssl", &(MQTT->use_ssl));
                     MQTT->port1 = get_int_from_object(config, "port");
                     MQTT->use_ssl1 = get_int_from_object(config, "use_ssl");
                 }
-                
             }
         }
         sscma_client_reply_clear(&reply);
@@ -1716,26 +1744,32 @@ esp_err_t sscma_utils_fetch_image_from_reply(const sscma_client_reply_t *reply, 
 
     if (!cJSON_IsObject(reply->payload))
     {
+      
         return ESP_ERR_INVALID_ARG;
     }
 
     cJSON *data = cJSON_GetObjectItem(reply->payload, "data");
     if (!data)
     {
+       
         return ESP_FAIL;
     }
 
     cJSON *image_data = cJSON_GetObjectItem(data, "image");
     if (!image_data)
     {
+        
         return ESP_FAIL;
     }
 
     const char *image_str = cJSON_GetStringValue(image_data);
     if (!image_str)
     {
+
         return ESP_FAIL;
     }
+
+
 
     *image = __strdup(image_str);
     if (!(*image))
