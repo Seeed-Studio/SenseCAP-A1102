@@ -1,5 +1,5 @@
 #include "app_mqtt.h"
-
+#include "string.h"
 
 static const char *TAG = "mqtt_app";
 
@@ -154,8 +154,11 @@ void mqtt_initialize()
     printf("mqtt_rx_topic = %s\r\n",mqtt_rx_topic);
     ESP_LOGI(TAG, "MQTT client id: %s", mqtt_client_id);
 
+    char mqtt_address_buff[25] = "mqtt://"; 
+    strcat(mqtt_address_buff,mqtt.address);
+
     esp_mqtt_client_config_t mqtt_cfg = {
-        .broker.address.uri = mqtt.address,
+        .broker.address.uri = mqtt_address_buff,
         .broker.address.port = mqtt.port1,
         .credentials.client_id = mqtt.client_id,
         .credentials.username = mqtt.username,
