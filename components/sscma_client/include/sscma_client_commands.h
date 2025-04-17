@@ -13,7 +13,7 @@
 #define CMD_PREFIX "AT+"
 #define CMD_QUERY  "?"
 #define CMD_SET    "="
-#define CMD_SUFFIX "\r\n"
+#define CMD_SUFFIX "\n"
 
 #define CMD_PREFIX_LEN (sizeof(CMD_PREFIX) - 1)
 #define CMD_SUFFIX_LEN (sizeof(CMD_SUFFIX) - 1)
