@@ -80,6 +80,8 @@ void on_event(sscma_client_handle_t client, const sscma_client_reply_t *reply, v
 
 void on_connect(sscma_client_handle_t client, const sscma_client_reply_t *reply, void *user_ctx)
 {
+
+    
     connect_time++;
     if(connect_time > 1){
         ESP_LOGW(TAG, "connect_time = %d will reboot",connect_time);
@@ -87,7 +89,40 @@ void on_connect(sscma_client_handle_t client, const sscma_client_reply_t *reply,
     }
 
     ESP_LOGW(TAG, "on connect");
+    
+    ESP_LOGI("APP_VERSION", "App version: %s", CONFIG_APP_PROJECT_VER);
+    char *cmd = CONCATENATE_STRINGS("AT+WIFIVER=");
+    printf("cmd = %s\r\n",cmd);
+    sscma_client_reply_t rep;
+    esp_err_t ree = sscma_client_request(client, cmd, &rep, true, CMD_WAIT_DELAY);
 
+    if (ree == ESP_OK)
+    {
+        if (rep.payload != NULL)
+        {
+            cJSON *data = cJSON_GetObjectItem(rep.payload, "data");
+            if (data != NULL)
+            {
+                char *data_string = cJSON_Print(data);
+
+                if (data_string != NULL)
+                {
+                    printf("Data as string: %s\n", data_string);
+
+                    free(data_string);
+                }
+                else
+                {
+                    printf("Failed to convert 'data' to string.\n");
+                }
+            }
+            else
+            {
+                printf("'data' is NULL or not found in the JSON object.\n");
+            }
+            sscma_client_reply_clear(&rep);
+        }
+    }
 
 
     sscma_client_info_t *info = NULL;
