@@ -1,0 +1,9 @@
+menu "mqtt2uart Configuration"
+
+    config APP_PROJECT_VER
+        string "Project Version"
+        default "esp32c3:3.0.0"
+        help
+            Version string sent to SSCMA via AT+WIFIVER.
+
+endmenu
