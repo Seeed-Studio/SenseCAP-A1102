@@ -28,7 +28,7 @@
 #define TAG "mqtt2uart"
 
 /* Version sent to SSCMA chip via AT+WIFIVER */
-#define WIFI_VERSION_STR "xiao_esp32c3:3.0.0"
+#define WIFI_VERSION_STR "2.1.0"
 
 /* NVS keys */
 #define NVS_NAMESPACE          "mqtt2uart"
